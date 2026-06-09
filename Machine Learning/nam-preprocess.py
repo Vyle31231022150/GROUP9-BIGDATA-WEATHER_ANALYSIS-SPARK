@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, month, year
-from pyspark.ml.feature import StringIndexer
+from pyspark.ml.feature import StringIndexer, OneHotEncoder
 
 # ==========================================
 # PHẦN 1: KHỞI TẠO VÀ ĐỌC DỮ LIỆU
