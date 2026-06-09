@@ -87,7 +87,7 @@ print("Đang lưu bộ dữ liệu hoàn hảo lên HDFS...")
 df_save = df_final.select("scaled_features", "label")
 
 # Đường dẫn chuẩn lên HDFS mà bạn đã cấu hình
-hdfs_output_path = "hdfs://localhost:9000/DACK/weather_ml_rain"
+hdfs_output_path = "hdfs://localhost:9000/DACK/weather_ml_rain_index"
 
 # Ghi dữ liệu dạng Parquet (Dạng file nén chuyên dụng tối ưu của Big Data)
 df_save.coalesce(1) \
