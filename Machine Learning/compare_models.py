@@ -52,7 +52,7 @@ def evaluate_dataset(data_path, encoding_name):
 
     # Train/Test Split
     train_data, test_data = df.randomSplit(
-        [0.8, 0.2],
+        [0.7, 0.3],
         seed=42
     )
 

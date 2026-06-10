@@ -28,7 +28,7 @@ data_path = "hdfs://localhost:9000/DACK/weather_ml_rain_ohe"
 df = spark.read.parquet(data_path)
 
 train_data, test_data = df.randomSplit(
-    [0.8, 0.2],
+    [0.7, 0.3],
     seed=42
 )
 
