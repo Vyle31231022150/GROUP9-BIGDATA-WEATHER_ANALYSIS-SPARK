@@ -95,8 +95,6 @@ feature_cols = [
 
     # Nhóm nhiệt độ
     "MinTemp",
-    "MaxTemp",
-    "Temp9am",
     "Temp3pm",
     "TempRange",
 
@@ -110,7 +108,6 @@ feature_cols = [
 
     # Áp suất
     "Pressure9am",
-    "Pressure3pm",
     "PressureDiff",
 
     # Gió
