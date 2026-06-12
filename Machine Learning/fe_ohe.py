@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
-from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.ml.feature import VectorAssembler, StandardScaler, OneHotEncoder
 from pyspark.ml.stat import Correlation
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif
@@ -17,10 +17,8 @@ spark = SparkSession.builder \
 
 print("Đang đọc dữ liệu sạch từ bước tiền xử lý...")
 
-df = spark.read.csv(
-    "weather_clean_v2",
-    header=True,
-    inferSchema=True
+df = spark.read.parquet(
+    "hdfs://localhost:9000/DACK/weather_clean_v2"
 )
 
 print(f"Số dòng dữ liệu: {df.count()}")

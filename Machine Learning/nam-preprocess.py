@@ -77,11 +77,17 @@ df = df.withColumn(
 .withColumn("Month", month(col("DateParsed"))) \
 .withColumn("Year", year(col("DateParsed")))
 
-
 # ==========================================
-# PHẦN 4: XUẤT FILE SẠCH ĐỂ ĐƯA VÀO FEATURE ENGINEERING
+# PHẦN 4: LƯU DỮ LIỆU SẠCH LÊN HDFS
 # ==========================================
-output_dir = "hdfs://master:9000/DACK/weather_clean"
-df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_dir)
 
-print(f"\n✅ XONG! Dữ liệu siêu sạch đã được lưu vào thư mục: {output_dir}")
+print("Đang lưu dữ liệu sạch lên HDFS...")
+
+hdfs_output_path = "hdfs://localhost:9000/DACK/weather_clean_v2"
+
+df.write \
+    .mode("overwrite") \
+    .parquet(hdfs_output_path)
+
+print("========= THÀNH CÔNG =========")
+print(f"Saved to: {hdfs_output_path}")
