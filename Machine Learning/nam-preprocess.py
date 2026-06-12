@@ -76,7 +76,7 @@ df = df.withColumn("DateParsed", to_timestamp(col("Date"), "M/d/yyyy")) \
 
 print("Đang lưu dữ liệu sạch lên HDFS...")
 
-hdfs_output_path = "hdfs://localhost:9000/DACK/weather_clean_v2"
+hdfs_output_path = "hdfs://localhost:9000/DACK/weather_clean"
 
 df.write \
     .mode("overwrite") \
