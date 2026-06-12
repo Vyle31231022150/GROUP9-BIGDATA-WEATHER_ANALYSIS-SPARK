@@ -4,6 +4,7 @@ from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.stat import Correlation
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 # ==========================================
@@ -15,13 +16,16 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 print("Đang đọc dữ liệu siêu sạch từ bước tiền xử lý...")
-df = spark.read.csv("weather_clean_v2", header=True, inferSchema=True)
+df = spark.read.parquet(
+    "hdfs://localhost:9000/DACK/weather_clean_v2")
 print("Đang tính toán các chỉ số chênh lệch...")
 
 df = df.withColumn("TempRange", col("MaxTemp") - col("MinTemp"))
 df = df.withColumn("HumidityDiff", col("Humidity9am") - col("Humidity3pm"))
 df = df.withColumn("PressureDiff", col("Pressure9am") - col("Pressure3pm"))
 df = df.withColumn("WindSpeedDiff", col("WindSpeed3pm") - col("WindSpeed9am"))
+
+
 
 
 # ==========================================
