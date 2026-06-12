@@ -1,6 +1,11 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
-from pyspark.ml.feature import VectorAssembler, StandardScaler, OneHotEncoder
+from pyspark.sql.functions import col, when
+from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.ml.stat import Correlation
+import pandas as pd
+from sklearn.feature_selection import mutual_info_classif
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # ==========================================
 # PHẦN 1: KHỞI TẠO VÀ ĐỌC DỮ LIỆU SẠCH V2
@@ -48,6 +53,143 @@ df = df.withColumn(
     "WindSpeedDiff",
     col("WindSpeed3pm") - col("WindSpeed9am")
 )
+# ==========================================
+# PHẦN 3.5A: KIỂM TRA TƯƠNG QUAN GIỮA FEATURES
+# ==========================================
+
+print("Đang kiểm tra tương quan giữa các biến số...")
+
+numeric_cols = [
+
+    "MinTemp",
+    "MaxTemp",
+    "Temp9am",
+    "Temp3pm",
+    "TempRange",
+
+    "Rainfall",
+
+    "Humidity9am",
+    "Humidity3pm",
+    "HumidityDiff",
+
+    "Pressure9am",
+    "Pressure3pm",
+    "PressureDiff",
+
+    "WindGustSpeed",
+    "WindSpeed9am",
+    "WindSpeed3pm",
+    "WindSpeedDiff",
+
+    "Month"
+]
+
+# chuyển sang pandas để corr dễ hơn
+pdf = df.select(numeric_cols).toPandas()
+
+corr_matrix = pdf.corr()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# tăng kích thước figure
+plt.figure(figsize=(16, 12))
+
+# mask tam giác trên để đỡ rối
+mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+
+# vẽ heatmap
+sns.heatmap(
+    corr_matrix,
+    mask=mask,
+    annot=True,          # hiện số correlation
+    fmt=".2f",
+    cmap="coolwarm",     # đỏ xanh dễ nhìn
+    center=0,
+    linewidths=0.5,
+    square=True,
+    cbar_kws={"shrink": .8}
+)
+
+plt.title("Feature Correlation Matrix", fontsize=18)
+plt.xticks(rotation=45, ha="right")
+plt.yticks(rotation=0)
+
+plt.tight_layout()
+plt.show()
+
+
+
+print("Đang tính Mutual Information cho các biến có tương quan cao...")
+
+# ==========================================
+# Chỉ xét các biến thuộc nhóm corr cao
+# ==========================================
+
+high_corr_features = [
+    "MinTemp",
+    "MaxTemp",
+    "Temp9am",
+    "Temp3pm",
+    "Pressure9am",
+    "Pressure3pm"
+]
+
+# Spark -> Pandas
+pdf = df.select(high_corr_features + ["label"]).toPandas()
+
+# ==========================================
+# X và y
+# ==========================================
+
+X = pdf.drop(columns=["label"])
+y = pdf["label"]
+
+# ==========================================
+# Mutual Information
+# ==========================================
+
+mi_scores = mutual_info_classif(
+    X,
+    y,
+    random_state=42
+)
+
+# dataframe kết quả
+mi_df = pd.DataFrame({
+    "Feature": X.columns,
+    "MI Score": mi_scores
+})
+
+# sort giảm dần
+mi_df = mi_df.sort_values(
+    by="MI Score",
+    ascending=False
+)
+
+print("\nMutual Information Ranking:")
+print(mi_df)
+
+# ==========================================
+# Visualization
+# ==========================================
+
+plt.figure(figsize=(8,5))
+
+sns.barplot(
+    data=mi_df,
+    x="MI Score",
+    y="Feature"
+)
+
+plt.title("Mutual Information của các biến tương quan cao")
+plt.xlabel("Mutual Information Score")
+plt.ylabel("Feature")
+
+plt.tight_layout()
+plt.show()
 
 # ==========================================
 # PHẦN 3: ONE-HOT ENCODING
