@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_timestamp, month, year
+from pyspark.sql.functions import col, to_timestamp, month, year, coalesce
 from pyspark.ml.feature import StringIndexer, OneHotEncoder
 
 # ==========================================
@@ -12,7 +12,7 @@ spark = SparkSession.builder \
 
 print("Đang nạp dữ liệu gốc...")
 # Nhớ kiểm tra lại đường dẫn HDFS nếu cần
-df = spark.read.csv("hdfs://localhost:9000/DACK/weatherAUS.csv", header=True, inferSchema=True, nullValue="NA")
+df = spark.read.csv("hdfs://master:9000/DACK/weatherAUS.csv", header=True, inferSchema=True, nullValue="NA")
 print(f"Tổng số dòng ban đầu: {df.count()}")
 
 
@@ -66,15 +66,22 @@ for c in categorical_cols:
 
 # 3. Tách tháng và năm từ cột Date
 print("Đang tách thông tin ngày tháng...")
-df = df.withColumn("DateParsed", to_timestamp(col("Date"), "M/d/yyyy")) \
-       .withColumn("Month", month(col("DateParsed"))) \
-       .withColumn("Year", year(col("DateParsed")))
+df = df.withColumn(
+    "DateParsed",
+    coalesce(
+        to_timestamp(col("Date"), "d/M/yyyy"),     # 1. Thử chuẩn Việt Nam/Úc
+        to_timestamp(col("Date"), "yyyy-MM-dd"),   # 2. Thử chuẩn Quốc tế ISO
+        to_timestamp(col("Date"), "M/d/yyyy")      # 3. Thử chuẩn Mỹ 
+    )
+) \
+.withColumn("Month", month(col("DateParsed"))) \
+.withColumn("Year", year(col("DateParsed")))
 
 
 # ==========================================
 # PHẦN 4: XUẤT FILE SẠCH ĐỂ ĐƯA VÀO FEATURE ENGINEERING
 # ==========================================
-output_dir = "weather_clean_v2"
+output_dir = "hdfs://master:9000/DACK/weather_clean"
 df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_dir)
 
 print(f"\n✅ XONG! Dữ liệu siêu sạch đã được lưu vào thư mục: {output_dir}")
