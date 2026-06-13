@@ -74,6 +74,8 @@ def evaluate_dataset(data_path, encoding_name):
 
     lr_model = lr.fit(train_data)
 
+    lr_model.write().overwrite().save("hdfs://master:9000/DACK/lr_model_best")
+
     lr_predictions = lr_model.transform(test_data)
 
     lr_roc = roc_evaluator.evaluate(lr_predictions)
@@ -172,7 +174,7 @@ def evaluate_dataset(data_path, encoding_name):
 # ==========================================
 
 evaluate_dataset(
-    "hdfs://localhost:9000/DACK/weather_ml_rain_index",
+    "hdfs://master:9000/DACK/weather_ml_rain_index",
     "Index Encoding"
 )
 
@@ -181,7 +183,7 @@ evaluate_dataset(
 # ==========================================
 
 evaluate_dataset(
-    "hdfs://localhost:9000/DACK/weather_ml_rain_ohe",
+    "hdfs://master:9000/DACK/weather_ml_rain_ohe",
     "One-Hot Encoding"
 )
 
@@ -208,22 +210,7 @@ results_df = pd.DataFrame(
 print(results_df)
 
 # ==========================================
-# PHẦN 7: LƯU CSV
-# ==========================================
-
-csv_file = "encoding_comparison_results.csv"
-
-results_df.to_csv(
-    csv_file,
-    index=False,
-    encoding="utf-8-sig"
-)
-
-print("\nĐã lưu kết quả:")
-print(csv_file)
-
-# ==========================================
-# PHẦN 8: TÌM PHƯƠNG ÁN TỐT NHẤT
+# PHẦN 7: TÌM PHƯƠNG ÁN TỐT NHẤT
 # ==========================================
 
 best_model = results_df.sort_values(

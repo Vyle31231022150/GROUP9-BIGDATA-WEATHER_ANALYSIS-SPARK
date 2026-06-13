@@ -18,7 +18,7 @@ spark = SparkSession.builder \
 print("Đang đọc dữ liệu sạch từ bước tiền xử lý...")
 
 df = spark.read.parquet(
-    "hdfs://localhost:9000/DACK/weather_clean_v2"
+    "hdfs://master:9000/DACK/weather_clean"
 )
 
 print(f"Số dòng dữ liệu: {df.count()}")
@@ -304,7 +304,7 @@ df_save.show(5, truncate=False)
 # ==========================================
 # PHẦN 7: LƯU LÊN HDFS
 # ==========================================
-hdfs_output_path = "hdfs://localhost:9000/DACK/weather_ml_rain_ohe"
+hdfs_output_path = "hdfs://master:9000/DACK/weather_ml_rain_ohe"
 
 print("Đang lưu dữ liệu lên HDFS...")
 

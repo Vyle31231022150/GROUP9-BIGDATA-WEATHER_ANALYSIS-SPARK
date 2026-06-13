@@ -30,8 +30,8 @@ spark = (
 spark.sparkContext.setLogLevel("ERROR")  # Đổi thành ERROR để tắt sạch rác log màu đỏ
 print("✅ SparkSession khởi động thành công!\n")
 
-print("Đang đọc file CSV đã qua tiền xử lý từ HDFS...")
-df = spark.read.csv(
+print("Đang đọc file đã qua tiền xử lý từ HDFS...")
+df = spark.read.parquet(
     "hdfs://master:9000/DACK/weather_clean",
     header=True,
     inferSchema=True
@@ -297,7 +297,9 @@ q6 = run_query("""
 # ──────────────────────────────────────────────────────────────
 q7 = run_query("""
     SELECT
-        d.Year, d.FullDate, d.Month,
+        d.Year,
+        d.FullDate,
+        d.Month,
         ROUND(w.Rainfall, 1) AS Mua_Ngay_mm,
         ROUND(
             SUM(w.Rainfall) OVER (
@@ -307,15 +309,16 @@ q7 = run_query("""
             ), 1
         ) AS Mua_TichLuy_YTD_mm,
         CASE d.Year
-            WHEN 2010 THEN '🌊 La Niña 2010 (lũ lụt)'
+            WHEN 2011 THEN '🌊 La Niña 2011 (lũ lụt)'
             WHEN 2014 THEN '🔥 El Niño 2014 (hạn hán)'
         END AS Loai_Nam
     FROM Weather_Fact w
     JOIN Location_Dim l ON w.Loc_ID  = l.Loc_ID
     JOIN Date_Dim d     ON w.Date_ID = d.Date_ID
-    WHERE l.Location = 'Melbourne' AND d.Year IN (2010, 2014)
+    WHERE l.Location = 'Sydney'
+      AND d.Year IN (2011, 2014)
     ORDER BY d.Year, d.FullDate
-""", title="CÂU 7: ĐƯỜNG MƯA TÍCH LŨY (LA NINA 2010 VS EL NINO 2014 TẠI MELBOURNE)")
+""", title="CÂU 7: ĐƯỜNG MƯA TÍCH LŨY (LA NIÑA 2011 VS EL NIÑO 2014 TẠI SYDNEY)")
 
 # ==============================================================================
 # TRỰC QUAN HÓA CÂU 7: ĐƯỜNG MƯA TÍCH LŨY
@@ -342,12 +345,15 @@ sns.lineplot(
     x='DayOfYear',
     y='Mua_TichLuy_YTD_mm',
     hue='Loai_Nam',          # Tự động chia 2 màu cho 2 năm
-    palette=["#e74c3c", "#3498db"], # Màu: Đỏ (El Niño) - Xanh (La Niña)
+    palette=["#3498db", "#e74c3c"], # Màu: Đỏ (El Niño) - Xanh (La Niña)
     linewidth=3
 )
 
 # 5. Trang trí tiêu đề, nhãn dán
-plt.title('So sánh Đường Mưa Tích Lũy: La Niña (2010) vs El Niño (2014) tại Melbourne', fontsize=15, fontweight='bold', pad=15)
+plt.title(
+    'So sánh Đường Mưa Tích Lũy: La Niña (2011) vs El Niño (2014) tại Sydney',
+    fontsize=15, fontweight='bold', pad=15
+)
 plt.xlabel('Ngày trong năm (Từ 1/1 đến 31/12)', fontsize=12)
 plt.ylabel('Lượng mưa tích lũy (mm)', fontsize=12)
 plt.legend(title='Chu kỳ khí hậu', fontsize=11)
