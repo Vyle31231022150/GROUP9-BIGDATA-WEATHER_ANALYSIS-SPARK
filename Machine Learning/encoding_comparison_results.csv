@@ -1,7 +1,0 @@
-﻿Encoding,Model,ROC_AUC,F1_Score,Time_Seconds
-Index Encoding,Logistic Regression,0.8495,0.8244,22.14
-Index Encoding,Decision Tree,0.8102,0.8212,14.64
-Index Encoding,Random Forest,0.8245,0.8101,28.8
-One-Hot Encoding,Logistic Regression,0.864,0.8378,36.19
-One-Hot Encoding,Decision Tree,0.8202,0.8248,17.57
-One-Hot Encoding,Random Forest,0.828,0.7797,33.35
