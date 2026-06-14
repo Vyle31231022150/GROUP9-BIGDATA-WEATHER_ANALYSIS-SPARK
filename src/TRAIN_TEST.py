@@ -15,7 +15,7 @@ print("Đang đọc Index Dataset...")
 df_index = spark.read.parquet(
     "hdfs://master:9000/DACK/weather_ml_rain_index"
 )
-
+df_index.cache()
 train_index, test_index = df_index.randomSplit(
     [0.7, 0.3],
     seed=42
@@ -40,7 +40,7 @@ print("Đang đọc OHE Dataset...")
 df_ohe = spark.read.parquet(
     "hdfs://master:9000/DACK/weather_ml_rain_ohe"
 )
-
+df_ohe.cache()
 train_ohe, test_ohe = df_ohe.randomSplit(
     [0.7, 0.3],
     seed=42
@@ -55,5 +55,6 @@ test_ohe.write \
     .parquet("hdfs://master:9000/DACK/weather_ml_rain_ohe_test")
 
 print("Đã lưu OHE Train/Test")
-
+df_index.unpersist()
+df_ohe.unpersist()
 spark.stop()

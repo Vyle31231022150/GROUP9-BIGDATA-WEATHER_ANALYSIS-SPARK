@@ -43,8 +43,9 @@ scaler = StandardScaler(inputCol="features", outputCol="scaled_features", withSt
 print("2. Dang dong goi Hop den Pipeline...")
 stages = indexers + [encoder, assembler, scaler]
 pipeline = Pipeline(stages=stages)
+df.cache()
 pipeline_model = pipeline.fit(df)
-
+df.unpersist()
 pipeline_model.write().overwrite().save("hdfs://master:9000/DACK/weather_pipeline_model")
 print("THANH CONG! Da luu Pipeline")
 spark.stop()

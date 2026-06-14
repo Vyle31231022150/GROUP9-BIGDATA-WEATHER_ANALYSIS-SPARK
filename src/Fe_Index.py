@@ -15,7 +15,7 @@ spark = SparkSession.builder \
 print("Đang đọc dữ liệu sạch...")
 
 df = spark.read.parquet("hdfs://master:9000/DACK/weather_clean")
-
+df.cache()
 print("Tải xong data")
 
 # ==========================================
@@ -136,5 +136,6 @@ df_save.coalesce(1) \
 
 print("DONE")
 print(f"Saved to: {output_path}")
+df.unpersist()
 
 spark.stop()

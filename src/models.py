@@ -16,19 +16,15 @@ import time
 # PHẦN 1: KHỞI TẠO SPARK
 # ==========================================
 
-spark = SparkSession.builder \
-    .appName("Models") \
-    .master("local[*]") \
+spark = (
+    SparkSession.builder
+    .appName("Models")
+    .master("spark://26.49.14.99:7077")
+    .config("spark.driver.memory", "4g")
+    .config("spark.executor.memory", "2g")
+    .config("spark.sql.adaptive.enabled", "true")
     .getOrCreate()
-
-# spark = (
-#     SparkSession.builder
-#     .appName("Models")
-#     .master("spark://26.49.14.99:7077")
-#     .config("spark.driver.memory", "4g")
-#     .config("spark.executor.memory", "2g")
-#     .config("spark.sql.adaptive.enabled", "true")
-#     .getOrCreate()
+)
 # ==========================================
 # PHẦN 2: THƯỚC ĐO ĐÁNH GIÁ
 # ==========================================
@@ -64,8 +60,8 @@ def evaluate_dataset(
     # ĐỌC TRAIN / TEST ĐÃ CHIA SẴN
     # ======================================
 
-    train_data = spark.read.parquet(train_path)
-    test_data = spark.read.parquet(test_path)
+    train_data = spark.read.parquet(train_path).cache()
+    test_data = spark.read.parquet(test_path).cache()
 
     print(f"Train: {train_data.count()}")
     print(f"Test : {test_data.count()}")
@@ -164,7 +160,8 @@ def evaluate_dataset(
     rf_f1 = f1_evaluator.evaluate(rf_predictions)
 
     rf_time = round(time.time() - start_time, 2)
-
+    train_data.unpersist()
+    test_data.unpersist()
     print(f"ROC-AUC : {rf_roc:.4f}")
     print(f"F1      : {rf_f1:.4f}")
     print(f"Time    : {rf_time}s")

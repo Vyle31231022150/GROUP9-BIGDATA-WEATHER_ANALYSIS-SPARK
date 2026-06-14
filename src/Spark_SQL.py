@@ -61,7 +61,7 @@ w_date = Window.orderBy("ParsedDate")
 w_fact = Window.orderBy("ParsedDate", "Location")
 
 # BẢNG 1: Location_Dim (Chiều không gian)
-location_dim = df.select("Location").distinct().withColumn("Loc_ID", F.row_number().over(w_loc))
+location_dim = df.select("Location").distinct().withColumn("Loc_ID", F.row_number().over(w_loc)).cache()
 location_dim.createOrReplaceTempView("Location_Dim")
 
 # BẢNG 2: Date_Dim (Chiều thời gian)
@@ -70,7 +70,7 @@ date_dim = (
     .distinct()
     .withColumn("Date_ID", F.row_number().over(w_date))
     .withColumnRenamed("ParsedDate", "FullDate")
-)
+).cache()
 date_dim.createOrReplaceTempView("Date_Dim")
 
 # JOIN df với 2 bảng chiều để lấy ID
@@ -89,14 +89,14 @@ df_j = (
 weather_fact = df_j.select(
     "Record_ID", "Loc_ID", "Date_ID", "MinTemp", "MaxTemp", "Rainfall",
     "Humidity9am", "Humidity3pm", "Temp9am", "Temp3pm", "RainToday", "RainTomorrow"
-)
+).cache()
 weather_fact.createOrReplaceTempView("Weather_Fact")
 
 # BẢNG 4: Wind_Pressure_Fact (Động lực học không khí)
 wind_pressure_fact = df_j.select(
     "Record_ID", "Loc_ID", "Date_ID", "WindGustDir", "WindGustSpeed",
     "WindDir9am", "WindDir3pm", "WindSpeed9am", "WindSpeed3pm", "Pressure9am", "Pressure3pm"
-)
+).cache()
 wind_pressure_fact.createOrReplaceTempView("Wind_Pressure_Fact")
 
 print("Đã tạo 4 TempView thành công:")
@@ -447,7 +447,10 @@ plt.xticks(ticks=[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335],
 # 6. Hiển thị biểu đồ (Code sẽ tạm dừng ở đây cho đến khi bạn đóng cửa sổ biểu đồ)
 plt.tight_layout()
 plt.show()
-
+location_dim.unpersist()
+date_dim.unpersist()
+weather_fact.unpersist()
+wind_pressure_fact.unpersist()
 # ==============================================================================
 # KẾT THÚC
 # ==============================================================================

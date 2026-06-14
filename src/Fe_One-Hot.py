@@ -45,7 +45,7 @@ df = df.withColumn("TempRange", col("MaxTemp") - col("MinTemp"))
 df = df.withColumn("HumidityDiff", col("Humidity9am") - col("Humidity3pm"))
 df = df.withColumn("PressureDiff", col("Pressure9am") - col("Pressure3pm"))
 df = df.withColumn("WindSpeedDiff", col("WindSpeed3pm") - col("WindSpeed9am"))
-
+df.cache()
 # ==========================================
 # PHẦN 3.5A: CORRELATION
 # ==========================================
@@ -206,5 +206,6 @@ output_path = "hdfs://master:9000/DACK/weather_ml_rain_ohe"
 df_save.coalesce(1).write.mode("overwrite").parquet(output_path)
 
 print("DONE SAVE:", output_path)
+df.unpersist()
 
 spark.stop()

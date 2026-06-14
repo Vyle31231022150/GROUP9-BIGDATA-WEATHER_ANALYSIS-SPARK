@@ -44,6 +44,7 @@ columns_to_drop = [
 ]
 
 df = df.drop(*columns_to_drop)
+df.cache()
 
 # numeric cols
 numeric_cols = [
@@ -112,5 +113,6 @@ df.write \
 
 print("DONE")
 print(f"Saved to: {output_path}")
+df.unpersist()
 
 spark.stop()
