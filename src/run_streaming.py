@@ -21,6 +21,7 @@ pipeline_model = PipelineModel.load("hdfs://master:9000/DACK/weather_pipeline_mo
 lr_model = LogisticRegressionModel.load("hdfs://master:9000/DACK/lr_model_best")
 
 schema = StructType([
+    StructField("id", IntegerType(), True),
     StructField("Date", StringType(), True), StructField("Location", StringType(), True),
     StructField("MinTemp", DoubleType(), True), StructField("MaxTemp", DoubleType(), True),
     StructField("Rainfall", DoubleType(), True), StructField("WindGustDir", StringType(), True),
@@ -73,52 +74,35 @@ stream_fe_df = stream_fe_df \
 print("3. He thong bat dau du doan...")
 
 
-# --- HÀM XỬ LÝ LÔ (CÓ CAMERA DEBUG) ---
+# --- HÀM XỬ LÝ LÔ ---
 def process_batch(batch_df, batch_id):
     print(f"\n========== LO DU LIEU SO {batch_id} ==========")
     if batch_df.isEmpty():
         print("-> Lo trong (0 dòng). Dang cho du lieu...")
         return
-
-    #print("1. [DEBUG CAMERA] DỮ LIỆU THÔ TỪ MARIA DB ĐẨY LÊN KAFKA:")
-    #batch_df.select("raw_value").show(3, False)
-
-    #print("2. [DEBUG CAMERA] SAU KHI GIẢI MÃ JSON:")
-    #batch_df.select("Date", "Location", "MinTemp", "Month").show(3, False)
-
     valid_df = batch_df.dropna(subset=["Location", "MinTemp", "Month"])
-
     if valid_df.isEmpty():
         print("CANH BAO: Du lieu bi loai vì loi giai ma JSON hoac sai dinh dang Date!")
         return
-
     try:
         features_df = pipeline_model.transform(valid_df)
         predictions_df = lr_model.transform(features_df)
-
-        final_df = predictions_df.select("Date", "Location", "Rainfall", "prediction")
-
+        columns_to_select = schema.fieldNames() + ["prediction"]
+        final_df = predictions_df.select(*columns_to_select)
         if final_df.isEmpty():
             print("MO HINH DANH ROT DU LIEU VI CO COT NULL!")
             return
-
         print("3. KET QUA DU DOAN THANH CONG:")
         final_df.show(10, False)
-
         jdbc_url = "jdbc:mysql://localhost:3306/weather_db"
         db_properties = {"user": "root", "password": "123456", "driver": "com.mysql.cj.jdbc.Driver"}
         final_df.write.jdbc(url=jdbc_url, table="weather_predictions", mode="append", properties=db_properties)
         print(f"--> DA LUU THANH CONG VAO MARIADB!")
-
     except Exception as e:
         print(f"❌ LOI TRONG QUA TRINH DU DOAN: {e}")
-
-
-# Kích hoạt luồng chạy
 query = stream_fe_df.writeStream \
     .foreachBatch(process_batch) \
     .outputMode("append") \
     .option("checkpointLocation", "hdfs://master:9000/DACK/checkpoint") \
     .start()
-
 query.awaitTermination()

@@ -27,7 +27,6 @@ df = df.withColumn("DateParsed", coalesce(*date_exprs)) \
 # Dùng skip cho Indexer để lọc rác
 indexers = [StringIndexer(inputCol=c, outputCol=c + "_index", handleInvalid="skip") for c in cat_cols]
 
-# === BỎ CHỮ "KEEP" Ở ĐÂY ĐỂ ÉP NÓ VỀ ĐÚNG 108 CỘT ===
 encoder = OneHotEncoder(inputCols=[c + "_index" for c in cat_cols], outputCols=[c + "_ohe" for c in cat_cols], dropLast=True)
 
 feature_cols = [
@@ -47,5 +46,5 @@ pipeline = Pipeline(stages=stages)
 pipeline_model = pipeline.fit(df)
 
 pipeline_model.write().overwrite().save("hdfs://master:9000/DACK/weather_pipeline_model")
-print("THANH CONG! Da luu Pipeline dung chuan 108 cot")
+print("THANH CONG! Da luu Pipeline")
 spark.stop()

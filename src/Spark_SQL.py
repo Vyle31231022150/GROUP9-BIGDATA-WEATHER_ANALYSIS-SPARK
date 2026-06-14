@@ -22,13 +22,14 @@ import seaborn as sns
 spark = (
     SparkSession.builder
     .appName("WeatherAUS_SparkSQL_10Queries")
-    .master("local[*]")
+    .master("spark://26.49.14.99:7077")
     .config("spark.driver.memory", "4g")
+    .config("spark.executor.memory", "2g")
     .config("spark.sql.adaptive.enabled", "true")
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("ERROR")  # Đổi thành ERROR để tắt sạch rác log màu đỏ
-print("✅ SparkSession khởi động thành công!\n")
+print("SparkSession khởi động thành công!\n")
 
 print("Đang đọc file đã qua tiền xử lý từ HDFS...")
 df = spark.read.parquet(
@@ -157,8 +158,8 @@ q1 = run_query("""
         ROUND(t.TB_ToanKy, 2) AS TB_ToanKy_mm,
         ROUND(m.LuongMua_TB_mm - t.TB_ToanKy, 2) AS Lech_So_TB,
         CASE
-            WHEN m.LuongMua_TB_mm > t.TB_ToanKy * 1.15 THEN '🌊 La Niña — Lũ lụt'
-            WHEN m.LuongMua_TB_mm < t.TB_ToanKy * 0.85 THEN '🔥 El Niño — Hạn hán'
+            WHEN m.LuongMua_TB_mm > t.TB_ToanKy * 1.15 THEN ' La Niña — Lũ lụt'
+            WHEN m.LuongMua_TB_mm < t.TB_ToanKy * 0.85 THEN ' El Niño — Hạn hán'
             ELSE 'Bình thường'
         END AS Ket_Luan_Khi_Hau
     FROM MuaTheoNam m, TrungBinhToanKy t
@@ -309,8 +310,8 @@ q7 = run_query("""
             ), 1
         ) AS Mua_TichLuy_YTD_mm,
         CASE d.Year
-            WHEN 2011 THEN '🌊 La Niña 2011 (lũ lụt)'
-            WHEN 2014 THEN '🔥 El Niño 2014 (hạn hán)'
+            WHEN 2011 THEN ' La Niña 2011 (lũ lụt)'
+            WHEN 2014 THEN ' El Niño 2014 (hạn hán)'
         END AS Loai_Nam
     FROM Weather_Fact w
     JOIN Location_Dim l ON w.Loc_ID  = l.Loc_ID
@@ -319,53 +320,6 @@ q7 = run_query("""
       AND d.Year IN (2011, 2014)
     ORDER BY d.Year, d.FullDate
 """, title="CÂU 7: ĐƯỜNG MƯA TÍCH LŨY (LA NIÑA 2011 VS EL NIÑO 2014 TẠI SYDNEY)")
-
-# ==============================================================================
-# TRỰC QUAN HÓA CÂU 7: ĐƯỜNG MƯA TÍCH LŨY
-# ==============================================================================
-print("Đang vẽ biểu đồ Câu 7...")
-
-# 1. Chuyển kết quả Spark DataFrame của câu 7 thành Pandas DataFrame
-pdf7 = q7.toPandas()
-
-# 2. Xử lý thời gian để đè 2 đường lên cùng 1 trục X
-# Ép kiểu cột FullDate về định dạng datetime
-pdf7['FullDate'] = pd.to_datetime(pdf7['FullDate'])
-
-# Tạo cột 'DayOfYear' (Ngày thứ 1 đến ngày 365) để 2 năm 2010 và 2014 có thể nằm đè lên nhau
-pdf7['DayOfYear'] = pdf7['FullDate'].dt.dayofyear
-
-# 3. Cài đặt khung vẽ
-plt.figure(figsize=(12, 6))
-sns.set_theme(style="whitegrid")
-
-# 4. Vẽ biểu đồ đường (Lineplot)
-sns.lineplot(
-    data=pdf7,
-    x='DayOfYear',
-    y='Mua_TichLuy_YTD_mm',
-    hue='Loai_Nam',          # Tự động chia 2 màu cho 2 năm
-    palette=["#3498db", "#e74c3c"], # Màu: Đỏ (El Niño) - Xanh (La Niña)
-    linewidth=3
-)
-
-# 5. Trang trí tiêu đề, nhãn dán
-plt.title(
-    'So sánh Đường Mưa Tích Lũy: La Niña (2011) vs El Niño (2014) tại Sydney',
-    fontsize=15, fontweight='bold', pad=15
-)
-plt.xlabel('Ngày trong năm (Từ 1/1 đến 31/12)', fontsize=12)
-plt.ylabel('Lượng mưa tích lũy (mm)', fontsize=12)
-plt.legend(title='Chu kỳ khí hậu', fontsize=11)
-
-# Chỉ định mốc các tháng trên trục X cho dễ nhìn (30 ngày, 60 ngày...)
-plt.xticks(ticks=[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335],
-           labels=['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
-                   'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], rotation=45)
-
-# 6. Hiển thị biểu đồ (Code sẽ tạm dừng ở đây cho đến khi bạn đóng cửa sổ biểu đồ)
-plt.tight_layout()
-plt.show()
 
 # ──────────────────────────────────────────────────────────────
 # CÂU 8: Đợt khô hạn liên tiếp dài nhất lịch sử
@@ -448,7 +402,54 @@ q10 = run_query("""
 """, title="CÂU 10: BẢNG TỔNG HỢP XẾP HẠNG 49 ĐỊA ĐIỂM TRONG 10 NĂM")
 
 # ==============================================================================
+# TRỰC QUAN HÓA CÂU 7: ĐƯỜNG MƯA TÍCH LŨY
+# ==============================================================================
+print("Đang vẽ biểu đồ Câu 7...")
+
+# 1. Chuyển kết quả Spark DataFrame của câu 7 thành Pandas DataFrame
+pdf7 = q7.toPandas()
+
+# 2. Xử lý thời gian để đè 2 đường lên cùng 1 trục X
+# Ép kiểu cột FullDate về định dạng datetime
+pdf7['FullDate'] = pd.to_datetime(pdf7['FullDate'])
+
+# Tạo cột 'DayOfYear' (Ngày thứ 1 đến ngày 365) để 2 năm 2010 và 2014 có thể nằm đè lên nhau
+pdf7['DayOfYear'] = pdf7['FullDate'].dt.dayofyear
+
+# 3. Cài đặt khung vẽ
+plt.figure(figsize=(12, 6))
+sns.set_theme(style="whitegrid")
+
+# 4. Vẽ biểu đồ đường (Lineplot)
+sns.lineplot(
+    data=pdf7,
+    x='DayOfYear',
+    y='Mua_TichLuy_YTD_mm',
+    hue='Loai_Nam',          # Tự động chia 2 màu cho 2 năm
+    palette=["#3498db", "#e74c3c"], # Màu: Đỏ (El Niño) - Xanh (La Niña)
+    linewidth=3
+)
+
+# 5. Trang trí tiêu đề, nhãn dán
+plt.title(
+    'So sánh Đường Mưa Tích Lũy: La Niña (2011) vs El Niño (2014) tại Sydney',
+    fontsize=15, fontweight='bold', pad=15
+)
+plt.xlabel('Ngày trong năm (Từ 1/1 đến 31/12)', fontsize=12)
+plt.ylabel('Lượng mưa tích lũy (mm)', fontsize=12)
+plt.legend(title='Chu kỳ khí hậu', fontsize=11)
+
+# Chỉ định mốc các tháng trên trục X cho dễ nhìn (30 ngày, 60 ngày...)
+plt.xticks(ticks=[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335],
+           labels=['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                   'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], rotation=45)
+
+# 6. Hiển thị biểu đồ (Code sẽ tạm dừng ở đây cho đến khi bạn đóng cửa sổ biểu đồ)
+plt.tight_layout()
+plt.show()
+
+# ==============================================================================
 # KẾT THÚC
 # ==============================================================================
 spark.stop()
-print("✅ Đã đóng SparkSession. Hoàn tất toàn bộ kịch bản 10 câu truy vấn!")
+print(" Đã đóng SparkSession. Hoàn tất toàn bộ kịch bản 10 câu truy vấn!")

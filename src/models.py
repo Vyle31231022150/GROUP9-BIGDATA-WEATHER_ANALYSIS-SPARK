@@ -1,22 +1,34 @@
 from pyspark.sql import SparkSession
-from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.classification import DecisionTreeClassifier
+from pyspark.ml.classification import (
+    LogisticRegression,
+    RandomForestClassifier,
+    DecisionTreeClassifier
+)
 from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
     MulticlassClassificationEvaluator
 )
+
 import pandas as pd
 import time
 
 # ==========================================
 # PHẦN 1: KHỞI TẠO SPARK
 # ==========================================
+
 spark = SparkSession.builder \
-    .appName("Compare_Encoding_Methods") \
+    .appName("Models") \
     .master("local[*]") \
     .getOrCreate()
 
+# spark = (
+#     SparkSession.builder
+#     .appName("Models")
+#     .master("spark://26.49.14.99:7077")
+#     .config("spark.driver.memory", "4g")
+#     .config("spark.executor.memory", "2g")
+#     .config("spark.sql.adaptive.enabled", "true")
+#     .getOrCreate()
 # ==========================================
 # PHẦN 2: THƯỚC ĐO ĐÁNH GIÁ
 # ==========================================
@@ -33,28 +45,27 @@ f1_evaluator = MulticlassClassificationEvaluator(
     metricName="f1"
 )
 
+results = []
+
 # ==========================================
 # PHẦN 3: HÀM ĐÁNH GIÁ DATASET
 # ==========================================
 
-results = []
-
-def evaluate_dataset(data_path, encoding_name):
+def evaluate_dataset(
+        train_path,
+        test_path,
+        encoding_name):
 
     print("\n" + "=" * 60)
     print(f"ENCODING: {encoding_name}")
     print("=" * 60)
 
-    # Đọc dữ liệu
-    df = spark.read.parquet(data_path)
+    # ======================================
+    # ĐỌC TRAIN / TEST ĐÃ CHIA SẴN
+    # ======================================
 
-    print(f"Số dòng dữ liệu: {df.count()}")
-
-    # Train/Test Split
-    train_data, test_data = df.randomSplit(
-        [0.7, 0.3],
-        seed=42
-    )
+    train_data = spark.read.parquet(train_path)
+    test_data = spark.read.parquet(test_path)
 
     print(f"Train: {train_data.count()}")
     print(f"Test : {test_data.count()}")
@@ -73,9 +84,7 @@ def evaluate_dataset(data_path, encoding_name):
     )
 
     lr_model = lr.fit(train_data)
-
     lr_model.write().overwrite().save("hdfs://master:9000/DACK/lr_model_best")
-
     lr_predictions = lr_model.transform(test_data)
 
     lr_roc = roc_evaluator.evaluate(lr_predictions)
@@ -94,6 +103,7 @@ def evaluate_dataset(data_path, encoding_name):
         round(lr_f1, 4),
         lr_time
     ])
+
     # ======================================
     # DECISION TREE
     # ======================================
@@ -129,7 +139,6 @@ def evaluate_dataset(data_path, encoding_name):
         round(dt_f1, 4),
         dt_time
     ])
-
 
     # ======================================
     # RANDOM FOREST
@@ -170,25 +179,27 @@ def evaluate_dataset(data_path, encoding_name):
 
 
 # ==========================================
-# PHẦN 4: CHẠY DATASET INDEX
+# PHẦN 4: INDEX ENCODING
 # ==========================================
 
 evaluate_dataset(
-    "hdfs://master:9000/DACK/weather_ml_rain_index",
+    "hdfs://master:9000/DACK/weather_ml_rain_index_train",
+    "hdfs://master:9000/DACK/weather_ml_rain_index_test",
     "Index Encoding"
 )
 
 # ==========================================
-# PHẦN 5: CHẠY DATASET OHE
+# PHẦN 5: ONE-HOT ENCODING
 # ==========================================
 
 evaluate_dataset(
-    "hdfs://master:9000/DACK/weather_ml_rain_ohe",
+    "hdfs://master:9000/DACK/weather_ml_rain_ohe_train",
+    "hdfs://master:9000/DACK/weather_ml_rain_ohe_test",
     "One-Hot Encoding"
 )
 
 # ==========================================
-# PHẦN 6: TỔNG HỢP KẾT QUẢ
+# PHẦN 6: BẢNG KẾT QUẢ
 # ==========================================
 
 print("\n")
@@ -198,19 +209,30 @@ print("=" * 80)
 
 results_df = pd.DataFrame(
     results,
-    columns=[
-        "Encoding",
-        "Model",
-        "ROC_AUC",
-        "F1_Score",
-        "Time_Seconds"
-    ]
+    columns=["Encoding", "Model", "ROC_AUC", "F1_Score", "Time_Seconds"]
 )
-
 print(results_df)
 
 # ==========================================
-# PHẦN 7: TÌM PHƯƠNG ÁN TỐT NHẤT
+# PHẦN 7: XUẤT KẾT QUẢ RA FILE CSV
+# ==========================================
+
+spark_results_df = spark.createDataFrame(
+    results,
+    schema=["Encoding", "Model", "ROC_AUC", "F1_Score", "Time_Seconds"]
+)
+
+output_path = "hdfs://master:9000/DACK/model_comparison_results"
+
+spark_results_df.coalesce(1) \
+    .write \
+    .mode("overwrite") \
+    .csv(output_path, header=True)
+
+print("\nĐã lưu thành công lên HDFS tại:")
+print(output_path)
+# ==========================================
+# PHẦN 8: MÔ HÌNH TỐT NHẤT
 # ==========================================
 
 best_model = results_df.sort_values(

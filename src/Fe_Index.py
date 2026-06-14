@@ -1,24 +1,74 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.stat import Correlation
-import pandas as pd
-from sklearn.feature_selection import mutual_info_classif
-import matplotlib.pyplot as plt
-import seaborn as sns
+from pyspark.sql.functions import col, to_timestamp, month, year, coalesce
+from pyspark.ml.feature import VectorAssembler, StandardScaler, StringIndexer
 
 # ==========================================
-# PHẦN 1: KHỞI TẠO VÀ ĐỌC DỮ LIỆU SẠCH V2
+# PHẦN 1: KHỞI TẠO & ĐỌC DATA CLEAN
 # ==========================================
+
 spark = SparkSession.builder \
-    .appName("Weather_Feature_Engineering") \
+    .appName("Weather_Feature_Engineering_Index") \
     .master("local[*]") \
+    .config("spark.sql.legacy.timeParserPolicy", "LEGACY") \
     .getOrCreate()
 
-print("Đang đọc dữ liệu siêu sạch từ bước tiền xử lý...")
-df = spark.read.parquet(
-    "hdfs://localhost:9000/DACK/weather_clean_v2")
-print("Đang tính toán các chỉ số chênh lệch...")
+print("Đang đọc dữ liệu sạch...")
+
+df = spark.read.parquet("hdfs://master:9000/DACK/weather_clean")
+
+print("Tải xong data")
+
+# ==========================================
+# PHẦN 2: ENCODING
+# ==========================================
+
+print("Đang mã hóa categorical features...")
+
+categorical_cols = [
+    "Location",
+    "WindGustDir",
+    "WindDir9am",
+    "WindDir3pm",
+    "RainToday"
+]
+
+# label encoding cho target
+label_indexer = StringIndexer(
+    inputCol="RainTomorrow",
+    outputCol="label"
+)
+
+df = label_indexer.fit(df).transform(df)
+
+# encode các feature categorical
+for c in categorical_cols:
+    indexer = StringIndexer(
+        inputCol=c,
+        outputCol=c + "_index"
+    )
+    df = indexer.fit(df).transform(df)
+
+# ==========================================
+# PHẦN 3: TIME FEATURE
+# ==========================================
+
+print("Xử lý Date...")
+
+date_formats = [
+    "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy",
+    "d/M/yyyy", "M/d/yyyy", "yyyy/MM/dd", "dd-MM-yyyy"
+]
+date_exprs = [to_timestamp(col("Date"), fmt) for fmt in date_formats]
+
+df = df.withColumn("DateParsed", coalesce(*date_exprs)) \
+       .withColumn("Month", month(col("DateParsed"))) \
+       .withColumn("Year", year(col("DateParsed")))
+
+# ==========================================
+# PHẦN 4: FEATURE ENGINEERING
+# ==========================================
+
+print("Tạo feature mới...")
 
 df = df.withColumn("TempRange", col("MaxTemp") - col("MinTemp"))
 df = df.withColumn("HumidityDiff", col("Humidity9am") - col("Humidity3pm"))
@@ -26,29 +76,38 @@ df = df.withColumn("PressureDiff", col("Pressure9am") - col("Pressure3pm"))
 df = df.withColumn("WindSpeedDiff", col("WindSpeed3pm") - col("WindSpeed9am"))
 
 # ==========================================
-# PHẦN 3: VECTOR ASSEMBLER (ML PIPELINE)
+# PHẦN 5: VECTOR ASSEMBLER
 # ==========================================
-print("Đang gom nhóm biến độc lập...")
+
+print("Vectorizing features...")
 
 feature_cols = [
     "MinTemp", "Temp3pm", "TempRange",
     "Rainfall",
     "Humidity9am", "Humidity3pm", "HumidityDiff",
     "Pressure9am", "PressureDiff",
-    "WindGustSpeed", "WindSpeed9am", "WindSpeed3pm", "WindSpeedDiff",
+    "WindGustSpeed",
+    "WindSpeed9am", "WindSpeed3pm", "WindSpeedDiff",
     "Month",
-    "Location_index", "WindGustDir_index",
-    "WindDir9am_index", "WindDir3pm_index", "RainToday_index"
+    "Location_index",
+    "WindGustDir_index",
+    "WindDir9am_index",
+    "WindDir3pm_index",
+    "RainToday_index"
 ]
 
-assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
+assembler = VectorAssembler(
+    inputCols=feature_cols,
+    outputCol="features"
+)
+
 df_vector = assembler.transform(df)
 
+# ==========================================
+# PHẦN 6: SCALING
+# ==========================================
 
-# ==========================================
-# PHẦN 4: STANDARD SCALER
-# ==========================================
-print("Đang chuẩn hóa dữ liệu...")
+print("Scaling features...")
 
 scaler = StandardScaler(
     inputCol="features",
@@ -60,20 +119,22 @@ scaler = StandardScaler(
 scaler_model = scaler.fit(df_vector)
 df_final = scaler_model.transform(df_vector)
 
+# ==========================================
+# PHẦN 7: SAVE DATASET INDEX
+# ==========================================
 
-# ==========================================
-# PHẦN 5: LƯU HDFS
-# ==========================================
-print("Đang lưu dữ liệu...")
+print("Saving dataset...")
 
 df_save = df_final.select("scaled_features", "label")
 
-hdfs_output_path = "hdfs://localhost:9000/DACK/weather_ml_rain_index"
+output_path = "hdfs://master:9000/DACK/weather_ml_rain_index"
 
 df_save.coalesce(1) \
     .write \
     .mode("overwrite") \
-    .parquet(hdfs_output_path)
+    .parquet(output_path)
 
-print("========= THÀNH CÔNG =========")
-print(f"Saved to: {hdfs_output_path}")
+print("DONE")
+print(f"Saved to: {output_path}")
+
+spark.stop()
