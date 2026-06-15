@@ -32,10 +32,8 @@ print(f"Total rows: {df.count()}")
 
 print("Xử lý missing values...")
 
-# bỏ target null
 df = df.dropna(subset=["RainTomorrow"])
 
-# bỏ cột quá nhiều missing
 columns_to_drop = [
     "Evaporation",
     "Sunshine",
@@ -46,7 +44,6 @@ columns_to_drop = [
 df = df.drop(*columns_to_drop)
 df.cache()
 
-# numeric cols
 numeric_cols = [
     "MinTemp", "MaxTemp", "Rainfall", "WindGustSpeed",
     "WindSpeed9am", "WindSpeed3pm",
@@ -55,7 +52,7 @@ numeric_cols = [
     "Temp9am", "Temp3pm"
 ]
 
-# categorical cols
+
 categorical_cols = [
     "Location",
     "WindGustDir",
@@ -64,13 +61,11 @@ categorical_cols = [
     "RainToday"
 ]
 
-# fill median
 print("Điền giá trị bằng trung vị...")
 for c in numeric_cols:
     median_val = df.approxQuantile(c, [0.5], 0.0)[0]
     df = df.fillna({c: median_val})
 
-# fill mode
 print("Điền giá trị bằng yếu vị...")
 for c in categorical_cols:
     mode_row = df.filter(col(c).isNotNull()) \
