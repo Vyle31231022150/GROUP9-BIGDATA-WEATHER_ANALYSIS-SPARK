@@ -3,7 +3,7 @@ from pyspark.sql.functions import col, to_timestamp, month, year, coalesce
 from pyspark.ml.feature import VectorAssembler, StandardScaler, StringIndexer
 
 # ==========================================
-# PHẦN 1: KHỞI TẠO & ĐỌC DATA CLEAN
+# PHẦN 1: START SESSION
 # ==========================================
 
 spark = SparkSession.builder \
@@ -12,7 +12,7 @@ spark = SparkSession.builder \
     .config("spark.sql.legacy.timeParserPolicy", "LEGACY") \
     .getOrCreate()
 
-print("Đang đọc dữ liệu sạch...")
+print("Đang đọc dữ liệu đã qua tiền xử lý...")
 
 df = spark.read.parquet("hdfs://master:9000/DACK/weather_clean")
 df.cache()
@@ -32,7 +32,7 @@ categorical_cols = [
     "RainToday"
 ]
 
-# label encoding cho target
+# label encoding for target feature
 label_indexer = StringIndexer(
     inputCol="RainTomorrow",
     outputCol="label"
@@ -40,7 +40,7 @@ label_indexer = StringIndexer(
 
 df = label_indexer.fit(df).transform(df)
 
-# encode các feature categorical
+# encode categorical features
 for c in categorical_cols:
     indexer = StringIndexer(
         inputCol=c,
@@ -120,7 +120,7 @@ scaler_model = scaler.fit(df_vector)
 df_final = scaler_model.transform(df_vector)
 
 # ==========================================
-# PHẦN 7: SAVE DATASET INDEX
+# PHẦN 7: SAVE INDEX DATASET
 # ==========================================
 
 print("Saving dataset...")
