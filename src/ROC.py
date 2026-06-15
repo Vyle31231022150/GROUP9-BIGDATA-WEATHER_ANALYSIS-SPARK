@@ -9,7 +9,7 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 
 # ==========================================
-# KHỞI TẠO SPARK
+# PHẦN 1: KHỞI TẠO SPARK
 # ==========================================
 
 spark = SparkSession.builder \
@@ -18,7 +18,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # ==========================================
-# ĐỌC TRAIN / TEST OHE
+# PHẦN 2: ĐỌC TRAIN / TEST OHE
 # ==========================================
 
 train_data = spark.read.parquet(
@@ -77,7 +77,7 @@ rf_model = rf.fit(train_data)
 rf_predictions = rf_model.transform(test_data)
 
 # ==========================================
-# HÀM TÍNH ROC
+# PHẦN 3: TÍNH ROC CHO 3 MODEL
 # ==========================================
 
 def get_roc_data(predictions):
@@ -105,9 +105,6 @@ def get_roc_data(predictions):
 
     return fpr, tpr, roc_auc
 
-# ==========================================
-# TÍNH ROC CHO 3 MODEL
-# ==========================================
 
 lr_fpr, lr_tpr, lr_auc = get_roc_data(
     lr_predictions
@@ -122,7 +119,7 @@ rf_fpr, rf_tpr, rf_auc = get_roc_data(
 )
 
 # ==========================================
-# VẼ ROC CURVE
+# PHẦN 4: VẼ ROC CURVE
 # ==========================================
 
 plt.figure(figsize=(8,6))
