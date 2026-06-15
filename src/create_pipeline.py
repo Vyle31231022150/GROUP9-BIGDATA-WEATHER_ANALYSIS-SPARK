@@ -24,7 +24,7 @@ date_exprs = [to_date(col("Date"), fmt) for fmt in date_formats]
 df = df.withColumn("DateParsed", coalesce(*date_exprs)) \
        .withColumn("Month", month(col("DateParsed")))
 
-# Dùng skip cho Indexer để lọc rác
+# Dùng skip cho Indexer để lọc
 indexers = [StringIndexer(inputCol=c, outputCol=c + "_index", handleInvalid="skip") for c in cat_cols]
 
 encoder = OneHotEncoder(inputCols=[c + "_index" for c in cat_cols], outputCols=[c + "_ohe" for c in cat_cols], dropLast=True)
