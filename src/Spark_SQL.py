@@ -1,12 +1,3 @@
-# ==============================================================================
-# PHÂN TÍCH DỮ LIỆU THỜI TIẾT NƯỚC ÚC (SPARK SQL)
-#
-# Mô hình Galaxy Schema gồm 4 TempView:
-# - Location_Dim: Chiều không gian (49 địa điểm)
-# - Date_Dim: Chiều thời gian (Year / Month / Quarter / Season)
-# - Weather_Fact: Sự kiện khí hậu (nhiệt độ, độ ẩm, mưa)
-# - Wind_Pressure_Fact: Động lực học không khí (gió, áp suất)
-# ==============================================================================
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -28,7 +19,7 @@ spark = (
     .config("spark.sql.adaptive.enabled", "true")
     .getOrCreate()
 )
-spark.sparkContext.setLogLevel("ERROR")  # Đổi thành ERROR để tắt sạch rác log màu đỏ
+spark.sparkContext.setLogLevel("ERROR")
 print("SparkSession khởi động thành công!\n")
 
 print("Đang đọc file đã qua tiền xử lý từ HDFS...")

@@ -7,7 +7,7 @@ spark = SparkSession.builder \
 
 
 # ==========================================
-# INDEX DATASET
+# Phần 1: INDEX DATASET
 # ==========================================
 
 print("Đang đọc Index Dataset...")
@@ -32,7 +32,7 @@ test_index.write \
 print("Đã lưu Index Train/Test")
 
 # ==========================================
-# OHE DATASET
+# Phần 2: OHE DATASET
 # ==========================================
 
 print("Đang đọc OHE Dataset...")
