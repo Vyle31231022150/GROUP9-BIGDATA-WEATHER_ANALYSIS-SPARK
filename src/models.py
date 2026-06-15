@@ -56,19 +56,12 @@ def evaluate_dataset(
     print(f"ENCODING: {encoding_name}")
     print("=" * 60)
 
-    # ======================================
-    # ĐỌC TRAIN / TEST ĐÃ CHIA SẴN
-    # ======================================
-
     train_data = spark.read.parquet(train_path).cache()
     test_data = spark.read.parquet(test_path).cache()
 
     print(f"Train: {train_data.count()}")
     print(f"Test : {test_data.count()}")
 
-    # ======================================
-    # LOGISTIC REGRESSION
-    # ======================================
 
     print("\n>>> LOGISTIC REGRESSION")
 
@@ -99,10 +92,6 @@ def evaluate_dataset(
         round(lr_f1, 4),
         lr_time
     ])
-
-    # ======================================
-    # DECISION TREE
-    # ======================================
 
     print("\n>>> DECISION TREE")
 
@@ -135,10 +124,6 @@ def evaluate_dataset(
         round(dt_f1, 4),
         dt_time
     ])
-
-    # ======================================
-    # RANDOM FOREST
-    # ======================================
 
     print("\n>>> RANDOM FOREST")
 
@@ -174,10 +159,7 @@ def evaluate_dataset(
         rf_time
     ])
 
-
-# ==========================================
-# PHẦN 4: INDEX ENCODING
-# ==========================================
+# INDEX ENCODING
 
 evaluate_dataset(
     "hdfs://master:9000/DACK/weather_ml_rain_index_train",
@@ -185,9 +167,7 @@ evaluate_dataset(
     "Index Encoding"
 )
 
-# ==========================================
-# PHẦN 5: ONE-HOT ENCODING
-# ==========================================
+# ONE-HOT ENCODING
 
 evaluate_dataset(
     "hdfs://master:9000/DACK/weather_ml_rain_ohe_train",
@@ -196,7 +176,7 @@ evaluate_dataset(
 )
 
 # ==========================================
-# PHẦN 6: BẢNG KẾT QUẢ
+# PHẦN 4: BẢNG KẾT QUẢ
 # ==========================================
 
 print("\n")
@@ -211,7 +191,7 @@ results_df = pd.DataFrame(
 print(results_df)
 
 # ==========================================
-# PHẦN 7: XUẤT KẾT QUẢ RA FILE CSV
+# PHẦN 5: XUẤT KẾT QUẢ
 # ==========================================
 
 spark_results_df = spark.createDataFrame(
@@ -228,8 +208,10 @@ spark_results_df.coalesce(1) \
 
 print("\nĐã lưu thành công lên HDFS tại:")
 print(output_path)
+
+
 # ==========================================
-# PHẦN 8: MÔ HÌNH TỐT NHẤT
+# PHẦN 8: ĐÁNH GIÁ MÔ HÌNH TỐT NHẤT
 # ==========================================
 
 best_model = results_df.sort_values(
