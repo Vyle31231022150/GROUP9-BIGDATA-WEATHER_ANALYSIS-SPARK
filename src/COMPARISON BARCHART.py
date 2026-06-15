@@ -4,23 +4,20 @@ import numpy as np
 from pyspark.sql import SparkSession
 
 # ==========================================
-# KHỞI TẠO SPARK VÀ ĐỌC DỮ LIỆU TỪ HDFS
+# KHỞI TẠO SPARK SESSION
 # ==========================================
 
-# Khởi tạo SparkSession
 spark = SparkSession.builder \
     .appName("Draw_Comparison_Barchart") \
     .master("local[*]") \
     .getOrCreate()
 
-# Đọc file kết quả từ HDFS bằng Spark
 spark_df = spark.read.csv(
     "hdfs://master:9000/DACK/model_comparison_results",
     header=True,
     inferSchema=True
 )
 
-# Chuyển đổi Spark DataFrame thành Pandas DataFrame để vẽ biểu đồ
 results_df = spark_df.toPandas()
 
 print("Dữ liệu đã đọc thành công:")
