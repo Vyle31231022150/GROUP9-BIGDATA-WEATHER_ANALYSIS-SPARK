@@ -41,7 +41,7 @@ kafka_df = spark.readStream \
     .option("startingOffsets", "earliest") \
     .load()
 
-# --- BƯỚC KHUI HỘP JSON VÀ CHUYỂN TIẾP RAW_VALUE ---
+# --- JSON VÀ CHUYỂN TIẾP RAW_VALUE ---
 parsed_df = kafka_df.selectExpr("CAST(value AS STRING) as raw_value") \
     .withColumn("actual_payload", coalesce(
     get_json_object(col("raw_value"), "$.payload.after"),
@@ -52,7 +52,7 @@ parsed_df = kafka_df.selectExpr("CAST(value AS STRING) as raw_value") \
     .withColumn("data", from_json(col("actual_payload"), schema)) \
     .select("raw_value", "data.*")
 
-# --- FEATURE ENGINEERING CHUẨN XÁC ---
+# --- FEATURE ENGINEERIN ---
 stream_fe_df = parsed_df.withColumn("TempRange", col("MaxTemp") - col("MinTemp")) \
     .withColumn("HumidityDiff", col("Humidity9am") - col("Humidity3pm")) \
     .withColumn("PressureDiff", col("Pressure9am") - col("Pressure3pm")) \
@@ -99,7 +99,7 @@ def process_batch(batch_df, batch_id):
         final_df.write.jdbc(url=jdbc_url, table="weather_predictions", mode="append", properties=db_properties)
         print(f"--> DA LUU THANH CONG VAO MARIADB!")
     except Exception as e:
-        print(f"❌ LOI TRONG QUA TRINH DU DOAN: {e}")
+        print(f" LOI TRONG QUA TRINH DU DOAN: {e}")
 query = stream_fe_df.writeStream \
     .foreachBatch(process_batch) \
     .outputMode("append") \
