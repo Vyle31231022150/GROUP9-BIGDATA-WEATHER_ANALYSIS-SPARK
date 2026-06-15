@@ -1,4 +1,3 @@
-
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
@@ -8,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # ==============================================================================
-# BƯỚC 1 — KHỞI TẠO SPARK SESSION VÀ ĐỌC DỮ LIỆU
+# PHẦN 1: KHỞI TẠO SPARK SESSION VÀ ĐỌC DỮ LIỆU
 # ==============================================================================
 spark = (
     SparkSession.builder
@@ -33,7 +32,6 @@ print(f"Đã đọc: {df.count():,} dòng × {len(df.columns)} cột\n")
 # ==============================================================================
 # BƯỚC 2 — XÂY DỰNG GALAXY SCHEMA (4 TEMP VIEW)
 # ==============================================================================
-# ── Chuẩn bị cột thời gian ──
 df = (
     df
     .withColumn("ParsedDate", F.to_date("DateParsed"))
@@ -46,16 +44,16 @@ df = (
                 )
 )
 
-# ── Tạo ID tự động bằng ROW_NUMBER ──
+# Tạo ID tự động
 w_loc = Window.orderBy("Location")
 w_date = Window.orderBy("ParsedDate")
 w_fact = Window.orderBy("ParsedDate", "Location")
 
-# BẢNG 1: Location_Dim (Chiều không gian)
+# BẢNG 1: Location_Dim
 location_dim = df.select("Location").distinct().withColumn("Loc_ID", F.row_number().over(w_loc)).cache()
 location_dim.createOrReplaceTempView("Location_Dim")
 
-# BẢNG 2: Date_Dim (Chiều thời gian)
+# BẢNG 2: Date_Dim
 date_dim = (
     df.select("ParsedDate", "Year", "Month", "Quarter", "Season")
     .distinct()
@@ -76,14 +74,14 @@ df_j = (
     .withColumn("Record_ID", F.row_number().over(w_fact))
 )
 
-# BẢNG 3: Weather_Fact (Sự kiện khí hậu chính)
+# BẢNG 3: Weather_Fact
 weather_fact = df_j.select(
     "Record_ID", "Loc_ID", "Date_ID", "MinTemp", "MaxTemp", "Rainfall",
     "Humidity9am", "Humidity3pm", "Temp9am", "Temp3pm", "RainToday", "RainTomorrow"
 ).cache()
 weather_fact.createOrReplaceTempView("Weather_Fact")
 
-# BẢNG 4: Wind_Pressure_Fact (Động lực học không khí)
+# BẢNG 4: Wind_Pressure_Fact
 wind_pressure_fact = df_j.select(
     "Record_ID", "Loc_ID", "Date_ID", "WindGustDir", "WindGustSpeed",
     "WindDir9am", "WindDir3pm", "WindSpeed9am", "WindSpeed3pm", "Pressure9am", "Pressure3pm"
@@ -98,7 +96,7 @@ print(f"   Wind_Pressure_Fact: {wind_pressure_fact.count():,} bản ghi\n")
 
 
 # ==============================================================================
-# HÀM CHẠY SQL IN RA BẢNG KHUNG VIỀN ĐẸP
+# HÀM CHẠY SQL IN RA BẢNG KHUNG VIỀN
 # ==============================================================================
 def run_query(sql, title=""):
     if title:
@@ -108,10 +106,8 @@ def run_query(sql, title=""):
 
     result = spark.sql(sql)
 
-    # Lấy dữ liệu (Mở rộng cho phép lấy tối đa 1000 dòng để luôn hiển thị hết kết quả)
     pdf = result.limit(1000).toPandas()
 
-    # Vẽ bảng cực đẹp, canh lề siêu thẳng bằng tabulate (tablefmt='psql')
     print(tabulate(pdf, headers='keys', tablefmt='psql', showindex=False))
 
     print(f"\n   → Tổng số dòng kết quả: {result.count():,}\n")
@@ -411,7 +407,7 @@ pdf7['DayOfYear'] = pdf7['FullDate'].dt.dayofyear
 plt.figure(figsize=(12, 6))
 sns.set_theme(style="whitegrid")
 
-# 4. Vẽ biểu đồ đường (Lineplot)
+# 4. Vẽ biểu đồ đường
 sns.lineplot(
     data=pdf7,
     x='DayOfYear',
@@ -435,15 +431,14 @@ plt.xticks(ticks=[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335],
            labels=['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
                    'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], rotation=45)
 
-# 6. Hiển thị biểu đồ (Code sẽ tạm dừng ở đây cho đến khi bạn đóng cửa sổ biểu đồ)
+# 6. Hiển thị biểu đồ
 plt.tight_layout()
 plt.show()
 location_dim.unpersist()
 date_dim.unpersist()
 weather_fact.unpersist()
 wind_pressure_fact.unpersist()
-# ==============================================================================
-# KẾT THÚC
-# ==============================================================================
+
+
 spark.stop()
-print(" Đã đóng SparkSession. Hoàn tất toàn bộ kịch bản 10 câu truy vấn!")
+print(" Đã đóng SparkSession. Hoàn tất 10 câu truy vấn!")
